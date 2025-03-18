@@ -71,7 +71,7 @@ public class TerryPay extends JavaPlugin {
                 public void run() {
                     checkAPI.runTask();
                 }
-            }.runTaskTimer(this,0,(40 + random.nextInt(11)-5) * 20);
+            }.runTaskTimer(this,0,60 * 20);
         }
     }
 

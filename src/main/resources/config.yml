@@ -1,0 +1,39 @@
+# 爱发电配置
+af-dian:
+  # 是否开启检测
+  # 关闭后可以只作为链接创建插件使用，
+  # 不做任何发货操作或检测。
+  detection: true
+  # 开发者配置
+  # 请前往 https://afdian.com/dashboard/dev 申请获取
+  user-id: ""
+  api-token: ""
+  # 默认留言
+  default-remark: "请直接完成支付，切勿修改订单金额、留言、时间或刷新页面。"
+
+# 指令配置
+command:
+  # 点券倍率
+  # 1元 = 10点券
+  ratio: 10
+  # 执行的指令，支持 Papi 变量
+  # {player} 玩家名
+  # {amount} 充值实际金额
+  # {points} 获得点券数量
+  commands:
+    - "points give {player} {points}"
+    - "say {player} 充值了 {amount} 元，获得 {points} 点券"
+
+# 数据库配置
+database:
+  # 数据库类型，sqlite 或 mysql
+  type: "sqlite"
+  # 数据表前缀
+  prefix: "terry_pay_"
+  # 数据库名
+  name: "terry_pay"
+  # 其余配置
+  host: "localhost"
+  port: 3306
+  username: "root"
+  password: "password"

@@ -14,7 +14,6 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Objects;
-import java.util.Random;
 
 public class TerryPay extends JavaPlugin {
 
@@ -30,7 +29,6 @@ public class TerryPay extends JavaPlugin {
     private RunCommand runCommand;
 
     private BukkitTask task;
-    private final Random random = new Random();
 
     @Override
     public void onEnable() {

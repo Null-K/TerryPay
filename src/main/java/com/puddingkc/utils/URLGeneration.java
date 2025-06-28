@@ -28,7 +28,7 @@ public class URLGeneration {
             }
 
             String remarkEncoded = URLEncoder.encode(remark, StandardCharsets.UTF_8.toString());
-            String playerName = player.getName() + getRandomString();
+            String playerName = player.getUniqueId() + getRandomString();
 
             return "https://ifdian.net/order/create?user_id=" + userID
                     + "&remark=" + remarkEncoded

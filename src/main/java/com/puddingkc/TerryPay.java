@@ -90,6 +90,8 @@ public class TerryPay extends JavaPlugin {
 
         sqlMode = config.getString("database.type","sqlite");
 
+        initialization = config.getBoolean("af-dian.initialization",true);
+
         if (!userID.isEmpty() && !apiToken.isEmpty()) {
             startTask();
         }

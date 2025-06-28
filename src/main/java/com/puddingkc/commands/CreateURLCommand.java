@@ -42,10 +42,7 @@ public class CreateURLCommand implements CommandExecutor, TabCompleter {
                 return false;
             }
 
-            String remark = defaultRemark;
-            if (args.length >= 3 && !Objects.equals(args[2], "@default")) {
-                remark = args[2].equalsIgnoreCase("@player") ? player.getName() : args[2];
-            }
+            String remark = getRemark(args, player);
 
             String orderUrl = plugin.getUrlGeneration().generateURL(Math.max(5, Double.parseDouble(args[1])), player, remark);
             if (orderUrl != null) {
@@ -64,6 +61,22 @@ public class CreateURLCommand implements CommandExecutor, TabCompleter {
         return false;
     }
 
+    private static String getRemark(String[] args, Player player) {
+        String remark = defaultRemark;
+
+        if (args.length >= 3 && !Objects.equals(args[2], "@default")) {
+            String message = args[2];
+
+            if (message.equalsIgnoreCase("@player")) {
+                remark = player.getName();
+            } else if (message.equalsIgnoreCase("@uuid")) {
+                remark = player.getUniqueId().toString();
+            } else {
+                remark = message;
+            }
+        }
+        return remark;
+    }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, @NotNull Command command, @NotNull String s, String[] args) {
@@ -84,6 +97,7 @@ public class CreateURLCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 3) {
+            suggestions.add("@uuid");
             suggestions.add("@player");
             suggestions.add("@default");
             suggestions.add("自定义备注");

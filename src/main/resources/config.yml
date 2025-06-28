@@ -9,7 +9,10 @@ af-dian:
   user-id: ""
   api-token: ""
   # 默认留言
-  default-remark: "请直接完成支付，切勿修改订单金额、留言、时间或刷新页面。"
+  default-remark: "请直接完成支付，切勿修改订单留言或刷新页面。"
+  # 初始化模式
+  # 请在填写完上述信息后，重载一次插件让历史数据同步到数据库，再关闭初始化模式。
+  initialization: true
 
 settings:
   aes-key: "terry_pay_aes_key"
@@ -25,8 +28,8 @@ command:
   # {amount} 充值实际金额
   # {points} 获得点券数量
   commands:
-    - "points give {player} {points}"
-    - "say {player} 充值了 {amount} 元，获得 {points} 点券"
+    - "points give {player} {points} -s"
+    - "message:&8[&cTerryPay&8] &f{player} &7充值已到账，共获得 &f{points} &7货币。"
 
 # 数据库配置
 database:

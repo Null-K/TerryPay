@@ -4,11 +4,13 @@ import com.google.gson.JsonObject;
 import com.puddingkc.TerryPay;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.List;
+import java.util.UUID;
 
 import static com.puddingkc.TerryPay.isPositiveDouble;
 import static com.puddingkc.configs.PluginConfigs.*;
@@ -31,17 +33,23 @@ public class RunCommand {
                 playerName = decrypt(playerName,aesKey);
                 playerName = playerName.substring(0,playerName.length()-5);
             } catch (Exception e) {
-                plugin.getLogger().warning("解密失败，订单 " + key + " (" + playerName + ") 无法执行。");
+                plugin.getDatabaseManager().addOrder(key);
+                plugin.getLogger().warning("解密失败，订单 " + key + " (" + playerName + ") 无法执行，已跳过。");
                 return;
             }
 
-            Player player = Bukkit.getPlayer(playerName);
+            Player player = Bukkit.getPlayer(UUID.fromString(playerName));
             if (player == null || !player.isOnline()) { return; }
 
             String amount = optString(order,"total_amount",null);
             if (!isPositiveDouble(amount)) { return; }
 
             if (plugin.getDatabaseManager().addOrder(key)) {
+                if (initialization) {
+                    plugin.getLogger().warning("当前处于初始化模式，已跳过执行 " + player.getName() + " 订单 (" + key + ")。");
+                    return;
+                }
+
                 runCommand(player, Double.parseDouble(amount));
                 plugin.getLogger().info("玩家 " + player.getName() + " 订单 (" + key + ") 执行完成，金额 " + amount + " 元。");
             }
@@ -56,6 +64,13 @@ public class RunCommand {
                         .replace("{amount}", String.valueOf(amount))
                         .replace("{points}", String.valueOf((int) Math.ceil(amount * ratio)));
                 PlaceholderAPI.setPlaceholders(player, command);
+
+                if (command.startsWith("message:")) {
+                    String message = command.replace("message:", "");
+                    player.sendMessage(ChatColor.translateAlternateColorCodes('&', message));
+                    return;
+                }
+
                 plugin.getServer().dispatchCommand(Bukkit.getConsoleSender(), command);
             }
         }

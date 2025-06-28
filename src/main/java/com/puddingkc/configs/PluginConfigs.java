@@ -18,4 +18,6 @@ public class PluginConfigs {
 
     public static String sqlMode;
 
+    public static boolean initialization;
+
 }

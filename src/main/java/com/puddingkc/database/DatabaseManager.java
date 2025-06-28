@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.puddingkc.configs.PluginConfigs.sqlMode;
+
 public class DatabaseManager {
 
     private Connection connection;
@@ -29,7 +31,7 @@ public class DatabaseManager {
 
     public void connect() {
         try {
-            if (plugin.getConfigs().getString("database.type","sqlite").equals("mysql")) {
+            if (sqlMode.equals("mysql")) {
                 connection = DriverManager.getConnection(databaseUrl, username, password);
             } else {
                 connection = DriverManager.getConnection("jdbc:sqlite:" + plugin.getDataFolder() +  "/terryPay.db");

@@ -12,9 +12,11 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static com.puddingkc.TerryPay.isPositiveDouble;
 import static com.puddingkc.TerryPay.sendPlayerMessage;
+import static com.puddingkc.configs.PluginConfigs.defaultRemark;
 
 public class CreateURLCommand implements CommandExecutor, TabCompleter {
 
@@ -40,13 +42,17 @@ public class CreateURLCommand implements CommandExecutor, TabCompleter {
                 return false;
             }
 
-            String remark = plugin.getConfigs().getString("af-dian.default-remark","");
-            if (args.length == 3) {
+            String remark = defaultRemark;
+            if (args.length >= 3 && !Objects.equals(args[2], "@default")) {
                 remark = args[2].equalsIgnoreCase("@player") ? player.getName() : args[2];
             }
 
             String orderUrl = plugin.getUrlGeneration().generateURL(Math.max(5, Double.parseDouble(args[1])), player, remark);
             if (orderUrl != null) {
+                if (args.length == 4 && args[3].equalsIgnoreCase("-d")) {
+                    plugin.getUrlGeneration().sendGermDos(player, orderUrl);
+                    return true;
+                }
                 sender.sendMessage(ChatColor.RED + "[TerryPay] " + ChatColor.GRAY + "订单链接已生成: " + ChatColor.WHITE + orderUrl);
             } else {
                 sendPlayerMessage(sender,"&c[TerryPay] &7订单链接生成失败。");
@@ -79,7 +85,12 @@ public class CreateURLCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 3) {
             suggestions.add("@player");
+            suggestions.add("@default");
             suggestions.add("自定义备注");
+        }
+
+        if (args.length == 4) {
+            suggestions.add("-d");
         }
 
         return suggestions;

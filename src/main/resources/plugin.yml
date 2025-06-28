@@ -4,6 +4,7 @@ version: 1.0.1
 api-version: "1.16"
 author: PuddingKC
 depend: [ "PlaceholderAPI" ]
+softdepend: [ "GermPlugin" ]
 commands:
   create-order:
     description: 创建爱发电订单

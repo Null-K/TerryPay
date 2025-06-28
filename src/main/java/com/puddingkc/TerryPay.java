@@ -7,6 +7,7 @@ import com.puddingkc.expansion.OrderExpansion;
 import com.puddingkc.utils.CheckAPI;
 import com.puddingkc.utils.RunCommand;
 import com.puddingkc.utils.URLGeneration;
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -15,13 +16,9 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Objects;
 
+import static com.puddingkc.configs.PluginConfigs.*;
+
 public class TerryPay extends JavaPlugin {
-
-    private static FileConfiguration config;
-
-    private static String userId;
-    private static String apiToken;
-    private static int ratio;
 
     private URLGeneration urlGeneration;
     private DatabaseManager databaseManager;
@@ -54,6 +51,9 @@ public class TerryPay extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (task != null) {
+            task.cancel();
+        }
         if (databaseManager != null) {
             databaseManager.disconnect();
         }
@@ -63,7 +63,7 @@ public class TerryPay extends JavaPlugin {
         if (task != null) {
             task.cancel();
         }
-        if (getConfigs().getBoolean("af-dian.detection",true)) {
+        if (detectionEnabled) {
             task = new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -75,18 +75,29 @@ public class TerryPay extends JavaPlugin {
 
     public void loadConfig() {
         reloadConfig();
-        config = getConfig();
-        userId = config.getString("af-dian.user-id","");
+        FileConfiguration config = getConfig();
+
+        detectionEnabled = config.getBoolean("af-dian.detection",true);
+        defaultRemark = config.getString("af-dian.default-remark","");
+        userID = config.getString("af-dian.user-id","");
         apiToken = config.getString("af-dian.api-token","");
+
+        startString = config.getString("settings.start-string","");
+        aesKey = config.getString("settings.aes-key","");
+
+        payCommands = config.getStringList("command.commands");
         ratio = config.getInt("command.ratio",10);
 
-        if (!userId.isEmpty() && !apiToken.isEmpty()) {
+        sqlMode = config.getString("database.type","sqlite");
+
+        if (!userID.isEmpty() && !apiToken.isEmpty()) {
             startTask();
         }
 
         if (databaseManager != null) {
             databaseManager.disconnect();
         }
+
         loadDatabase();
     }
 
@@ -116,10 +127,6 @@ public class TerryPay extends JavaPlugin {
         return runCommand;
     }
 
-    public FileConfiguration getConfigs() {
-        return config;
-    }
-
     public static boolean isPositiveDouble(String string) {
         try {
             double value = Double.parseDouble(string);
@@ -130,19 +137,7 @@ public class TerryPay extends JavaPlugin {
     }
 
     public static void sendPlayerMessage(CommandSender player, String message) {
-        player.sendMessage(message.replace("&", "§"));
-    }
-
-    public static String getApiToken() {
-        return apiToken;
-    }
-
-    public static String getUserId() {
-        return userId;
-    }
-
-    public static int getRatio() {
-        return ratio;
+        player.sendMessage(ChatColor.translateAlternateColorCodes('&',message));
     }
 
 }

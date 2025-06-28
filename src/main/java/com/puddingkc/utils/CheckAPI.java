@@ -2,6 +2,8 @@ package com.puddingkc.utils;
 
 import com.google.gson.*;
 import com.puddingkc.TerryPay;
+import org.bukkit.Bukkit;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,7 +15,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.function.Consumer;
 
+import static com.puddingkc.configs.PluginConfigs.*;
 import static com.puddingkc.utils.JsonUtils.*;
 
 public class CheckAPI {
@@ -28,21 +32,40 @@ public class CheckAPI {
         JsonObject params = new JsonObject();
         params.addProperty("page", 1);
 
-        JsonObject result = request(path, TerryPay.getUserId(), TerryPay.getApiToken(), params);
-        Map<String, JsonObject> ordersMap = new HashMap<>();
+        request(path, userID, apiToken, params,
+                (result) -> {
+                    if (result == null || optInt(result, "ec", 0) != 200) {
+                        plugin.getLogger().warning("请求订单列表失败或无效返回");
+                        return;
+                    }
 
-        if (optInt(result, "ec", 0) == 200) {
-            JsonObject data = optObject(result, "data");
-            JsonArray list = optArray(data, "list");
+                    Map<String, JsonObject> ordersMap = new HashMap<>();
+                    JsonArray list = optArray(optObject(result, "data"), "list");
 
-            for (JsonElement element : list) {
-                JsonObject order = element.getAsJsonObject();
-                String outTradeNo = optString(order, "out_trade_no", null);
-                if (outTradeNo == null) continue;
-                ordersMap.put(outTradeNo, order);
-            }
-        }
+                    for (JsonElement element : list) {
+                        JsonObject order = element.getAsJsonObject();
+                        String outTradeNo = optString(order, "out_trade_no", null);
+                        if (outTradeNo == null) continue;
+                        ordersMap.put(outTradeNo, order);
+                    }
 
+                    List<String> outTradeNos = getStrings(ordersMap);
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                        List<String> missingOutTradeNos = plugin.getDatabaseManager().getMissingOrders(outTradeNos);
+
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            for (String key : missingOutTradeNos) {
+                                JsonObject order = ordersMap.get(key);
+                                if (order == null || optInt(order, "status", -1) != 2) { continue; }
+                                plugin.getLogger().info("有新的爱发电订单: " + key);
+                                plugin.getRunCommand().runOrderCommand(key,order);
+                            }
+                        });
+                    });
+                });
+    }
+
+    private static @NotNull List<String> getStrings(Map<String, JsonObject> ordersMap) {
         List<String> outTradeNos = new ArrayList<>(ordersMap.keySet());
         outTradeNos.removeIf(outTradeNo -> {
             JsonObject order = ordersMap.get(outTradeNo);
@@ -50,45 +73,61 @@ public class CheckAPI {
             return customID == null;
         });
 
-        List<String> missingOutTradeNos = plugin.getDatabaseManager().getMissingOrders(outTradeNos);
-
-        for (String key : missingOutTradeNos) {
-            JsonObject order = ordersMap.get(key);
-            if (order == null || optInt(order, "status", -1) != 2) { continue; }
-            plugin.getLogger().info("有新的爱发电订单: " + key);
-            plugin.getRunCommand().runOrderCommand(key,order);
+        if (startString != null && !startString.isEmpty()) {
+            outTradeNos.removeIf(outTradeNo -> {
+                String id = optString(ordersMap.get(outTradeNo),"custom_order_id",null);
+                return !id.startsWith(startString);
+            });
         }
+        return outTradeNos;
     }
 
-    private JsonObject request(String path, String userId, String token, JsonObject params) {
-        try {
-            String url = "https://afdian.com" + path;
-            HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Accept", "*/*");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setRequestProperty("Connection", "Keep-Alive");
-            conn.setDoOutput(true);
-            conn.setDoInput(true);
-            String body = buildParams(userId, token, params);
-            try (PrintWriter writer = new PrintWriter(conn.getOutputStream())) {
-                writer.write(body);
-                writer.flush();
-            }
-            try (InputStream input = conn.getInputStream();
-                 InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
-                StringBuilder sb = new StringBuilder();
-                char[] buffer = new char[1024];
-                int len;
-                while ((len = reader.read(buffer)) != -1) {
-                    sb.append(buffer, 0, len);
+    private void request(String path, String userId, String token, JsonObject params, Consumer<JsonObject> callback) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            HttpURLConnection conn = null;
+            try {
+                String url = "https://afdian.com" + path;
+                conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Accept", "*/*");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setRequestProperty("Connection", "Keep-Alive");
+                conn.setDoOutput(true);
+                conn.setDoInput(true);
+
+                conn.setConnectTimeout(3000);
+                conn.setReadTimeout(5000);
+
+                String body = buildParams(userId, token, params);
+                try (PrintWriter writer = new PrintWriter(conn.getOutputStream())) {
+                    writer.write(body);
+                    writer.flush();
                 }
-                JsonElement element = JsonParser.parseString(sb.toString());
-                return element.getAsJsonObject();
+                try (InputStream input = conn.getInputStream();
+                     InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+                    StringBuilder sb = new StringBuilder();
+                    char[] buffer = new char[1024];
+                    int len;
+                    while ((len = reader.read(buffer)) != -1) {
+                        sb.append(buffer, 0, len);
+                    }
+                    JsonElement element = JsonParser.parseString(sb.toString());
+                    JsonObject result = element.getAsJsonObject();
+
+                    //JsonElement element = new JsonParser().parse(sb.toString());
+                    //return element.getAsJsonObject();
+
+                    Bukkit.getScheduler().runTask(plugin, () -> callback.accept(result));
+                }
+            } catch (IOException | JsonSyntaxException e) {
+                plugin.getLogger().warning("请求爱发电 API 失败: " + e.getMessage());
+                Bukkit.getScheduler().runTask(plugin, () -> callback.accept(null));
+            } finally {
+                if (conn != null) {
+                    conn.disconnect();
+                }
             }
-        } catch (IOException | JsonSyntaxException e) {
-            return null;
-        }
+        });
     }
 
     private String buildParams(String userId, String token, JsonObject params) {

@@ -14,6 +14,8 @@ import java.util.List;
 
 import static com.puddingkc.TerryPay.isPositiveDouble;
 import static com.puddingkc.TerryPay.sendPlayerMessage;
+import static com.puddingkc.configs.PluginConfigs.aesKey;
+import static com.puddingkc.utils.RunCommand.testEncrypt;
 
 public class MainCommand implements CommandExecutor, TabCompleter {
 
@@ -51,12 +53,25 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                         sendPlayerMessage(sender,"&c[TerryPay] &7/terry-pay run <玩家名> <金额>");
                     }
                     break;
+                case "test":
+                    if (args.length == 3) {
+                        String id = args[1];
+                        String key = args[2];
+                        try {
+                            sendPlayerMessage(sender,"&c[TerryPay] &7测试解密结果: " + testEncrypt(id, key));
+                        } catch (Exception e) {
+                            sendPlayerMessage(sender,"&c[TerryPay] &7解密失败: " + e.getMessage());
+                        }
+                        return true;
+                    }
+                    break;
             }
             return true;
         }
 
         sendPlayerMessage(sender,"&c[TerryPay] &7/terry-pay reload");
         sendPlayerMessage(sender,"&c[TerryPay] &7/terry-pay run <玩家名> <金额>");
+        sendPlayerMessage(sender,"&c[TerryPay] &7/terry-pay test <值> <密钥>");
         return false;
     }
 
@@ -69,12 +84,17 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             suggestions.add("reload");
             suggestions.add("run");
+            suggestions.add("test");
         }
 
         if (args.length == 2 && args[0].equals("run")) {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 suggestions.add(player.getName());
             }
+        }
+
+        if (args.length == 3 && args[0].equals("test")) {
+            suggestions.add(aesKey);
         }
 
         if (args.length == 3 && args[0].equals("run")) {

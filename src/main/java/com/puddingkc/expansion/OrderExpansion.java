@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import static com.puddingkc.TerryPay.isPositiveDouble;
+import static com.puddingkc.configs.PluginConfigs.defaultRemark;
 
 public class OrderExpansion extends PlaceholderExpansion {
 
@@ -39,7 +40,7 @@ public class OrderExpansion extends PlaceholderExpansion {
             if (!isPositiveDouble(args[0])) { return null; }
             double amount = Math.max(5, Double.parseDouble(args[0]));
 
-            String remark = plugin.getConfigs().getString("af-dian.default-remark","");
+            String remark = defaultRemark;
             if (args.length >= 2) {
                 remark = args[1];
             }

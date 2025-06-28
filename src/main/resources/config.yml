@@ -11,6 +11,10 @@ af-dian:
   # 默认留言
   default-remark: "请直接完成支付，切勿修改订单金额、留言、时间或刷新页面。"
 
+settings:
+  aes-key: "terry_pay_aes_key"
+  start-string: "terry_"
+
 # 指令配置
 command:
   # 点券倍率

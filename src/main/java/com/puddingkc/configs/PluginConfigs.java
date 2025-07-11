@@ -20,4 +20,6 @@ public class PluginConfigs {
 
     public static boolean initialization;
 
+    public static String serverName;
+
 }

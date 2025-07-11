@@ -56,7 +56,9 @@ public class DatabaseManager {
 
     private void createTableIfNotExists() {
         String createOrderTableQuery = "CREATE TABLE IF NOT EXISTS " + prefix + "orders (" +
-                "order_id VARCHAR(36) PRIMARY KEY" +
+                "order_id VARCHAR(36) PRIMARY KEY," +
+                "player_id VARCHAR(36) NOT NULL," +
+                "amount DOUBLE NOT NULL" +
                 ")";
         try (Statement statement = connection.createStatement()) {
             statement.executeUpdate(createOrderTableQuery);
@@ -64,6 +66,7 @@ public class DatabaseManager {
             plugin.getLogger().severe("新建订单数据表失败: " + e.getMessage());
         }
     }
+
 
     public List<String> getMissingOrders(List<String> orderIds) {
         if (orderIds == null || orderIds.isEmpty()) {
@@ -90,19 +93,22 @@ public class DatabaseManager {
         return missingOrders;
     }
 
-    public boolean addOrder(String orderId) {
-        if (orderId == null || orderId.isEmpty()) {
+    public boolean addOrder(String orderId, String playerId, double amount) {
+        if (orderId == null || orderId.isEmpty() || playerId == null || playerId.isEmpty()) {
             return false;
         }
-        String insertQuery = "INSERT INTO " + prefix + "orders (order_id) VALUES (?)";
+        String insertQuery = "INSERT INTO " + prefix + "orders (order_id, player_id, amount) VALUES (?, ?, ?)";
         try (PreparedStatement statement = connection.prepareStatement(insertQuery)) {
             statement.setString(1, orderId);
+            statement.setString(2, playerId);
+            statement.setDouble(3, amount);
             int rowsAffected = statement.executeUpdate();
             return rowsAffected > 0;
         } catch (SQLException e) {
-            plugin.getLogger().severe("添加订单号失败: " + e.getMessage());
+            plugin.getLogger().severe("添加订单失败: " + e.getMessage());
             return false;
         }
     }
+
 
 }

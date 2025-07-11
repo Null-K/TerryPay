@@ -29,12 +29,13 @@ public class URLGeneration {
 
             String remarkEncoded = URLEncoder.encode(remark, StandardCharsets.UTF_8.toString());
             String playerName = player.getUniqueId() + getRandomString();
+            String aesName = playerName + ":" + serverName;
 
             return "https://ifdian.net/order/create?user_id=" + userID
                     + "&remark=" + remarkEncoded
                     + "&affiliate_code="
                     + "&custom_price=" + amount
-                    + "&custom_order_id=" + encrypt(playerName,aesKey);
+                    + "&custom_order_id=" + encrypt(aesName,aesKey);
         }  catch (Exception e) {
             plugin.getLogger().warning("爱发电订单地址生成失败: " + e.getMessage());
             return null;

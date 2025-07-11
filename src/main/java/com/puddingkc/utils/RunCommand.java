@@ -2,6 +2,7 @@ package com.puddingkc.utils;
 
 import com.google.gson.JsonObject;
 import com.puddingkc.TerryPay;
+import com.puddingkc.configs.PluginConfigs;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -25,26 +26,50 @@ public class RunCommand {
     }
 
     public void runOrderCommand(String key, JsonObject order) {
-        String playerName = optString(order,"custom_order_id",null);
-        if (playerName != null) {
-            playerName = playerName.replaceFirst(startString, "");
+        String encrypted = optString(order,"custom_order_id",null);
 
+        if (encrypted  != null) {
+            encrypted  = encrypted .replaceFirst(startString, "");
+
+            String decrypted;
             try {
-                playerName = decrypt(playerName,aesKey);
-                playerName = playerName.substring(0,playerName.length()-5);
+                decrypted = decrypt(encrypted,aesKey);
+                //playerName = playerName.substring(0,playerName.length()-5);
             } catch (Exception e) {
-                plugin.getDatabaseManager().addOrder(key);
-                plugin.getLogger().warning("解密失败，订单 " + key + " (" + playerName + ") 无法执行，已跳过。");
+                addError(key,order);
+                plugin.getLogger().warning("解密失败，订单 " + key + " 无法执行，已跳过。");
                 return;
             }
 
+            String[] parts = decrypted.split(":");
+            if (parts.length != 2) {
+                addError(key,order);
+                plugin.getLogger().warning("订单 " + key + " 解密格式不正确，已跳过执行: " + decrypted);
+                return;
+            }
+
+            String playerName = parts[0];
+            String serverName = parts[1];
+
+            if (!serverName.equals(PluginConfigs.serverName)) {
+                plugin.getLogger().warning("订单 " + key + " 服务器名称不匹配，已跳过执行: " + decrypted);
+                return;
+            }
+
+            if (playerName.length() < 5) {
+                addError(key,order);
+                plugin.getLogger().warning("订单 " + key + " 玩家名称不正确，已跳过执行: " + decrypted);
+                return;
+            }
+
+            playerName = playerName.substring(0,playerName.length()-5);
             Player player = Bukkit.getPlayer(UUID.fromString(playerName));
             if (player == null || !player.isOnline()) { return; }
 
             String amount = optString(order,"total_amount",null);
             if (!isPositiveDouble(amount)) { return; }
 
-            if (plugin.getDatabaseManager().addOrder(key)) {
+            if (plugin.getDatabaseManager().addOrder(key,player.getUniqueId().toString(),Double.parseDouble(amount))) {
                 if (initialization) {
                     plugin.getLogger().warning("当前处于初始化模式，已跳过执行 " + player.getName() + " 订单 (" + key + ")。");
                     return;
@@ -80,9 +105,23 @@ public class RunCommand {
         if (text.startsWith(startString)) {
             text = text.replaceFirst(startString, "");
             text = decrypt(text, key);
-            text = text.substring(0,text.length()-5);
+
+            String[] parts = text.split(":");
+
+            String name = parts[0];
+            String server = parts[1];
+
+            if (name.length() >= 5) {
+                name = name.substring(0,name.length()-5);
+            }
+
+            text = name + " -> " + server;
         }
         return text;
+    }
+
+    private void addError(String key, JsonObject order) {
+        plugin.getDatabaseManager().addOrder(key,"00000000-0000-0000-0000-000000000000",Double.parseDouble(optString(order,"total_amount","-1.0")));
     }
 
     private static String decrypt(String encryptedText, String key) throws Exception {

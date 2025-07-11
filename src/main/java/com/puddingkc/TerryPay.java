@@ -92,6 +92,8 @@ public class TerryPay extends JavaPlugin {
 
         initialization = config.getBoolean("af-dian.initialization",true);
 
+        serverName = config.getString("settings.server-name","");
+
         if (!userID.isEmpty() && !apiToken.isEmpty()) {
             startTask();
         }
